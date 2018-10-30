@@ -27,7 +27,6 @@ from sawtooth_validator.execution.execution_context \
     import AuthorizationException
 from sawtooth_validator.execution.execution_context import ExecutionContext
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -268,7 +267,7 @@ class ContextManager:
         Args:
             context_id (str): the return value of create_context, referencing
                 a particular context.
-            address_list (list): a list of address strs
+            address_list (list): a list of address strs (can be partial)
 
         Returns:
             values_list (list): a list of (address, value) tuples
@@ -283,14 +282,28 @@ class ContextManager:
 
         if context_id not in self._contexts:
             return []
+
+        need_to_read_address_list = []
         for add in address_list:
             if not self.address_is_valid(address=add):
-                raise AuthorizationException(address=add)
+                need_to_read_address_list.append(add)
+
+        existing_address_list = []
+        if need_to_read_address_list:
+            # get super set of all possible addresses with given input
+            existing_address_list = \
+                self.list_data_addresses(context_id, need_to_read_address_list)
+            if not existing_address_list:
+                existing_address_list = []
+
+        final_list = list(set(address_list) - set(need_to_read_address_list))
+        for add in existing_address_list:
+            final_list.append(add)
 
         context = self._contexts[context_id]
 
-        addresses_in_ctx = [add for add in address_list if add in context]
-        addresses_not_in_ctx = list(set(address_list) - set(addresses_in_ctx))
+        addresses_in_ctx = [add for add in final_list if add in context]
+        addresses_not_in_ctx = list(set(final_list) - set(addresses_in_ctx))
 
         values = context.get(addresses_in_ctx)
         values_list = list(zip(addresses_in_ctx, values))
@@ -324,9 +337,53 @@ class ContextManager:
                     add_values.append((add, value))
                 values_list.extend(add_values)
 
-            values_list.sort(key=lambda x: address_list.index(x[0]))
+            values_list.sort(key=lambda x: final_list.index(x[0]))
 
         return values_list
+
+    def list_data_addresses(self, context_id, addresses):
+        """Get the list of addresses which have data, for a specific
+        context referenced by context_id.
+
+        Args:
+            context_id (str): the return value of create_context, referencing
+                a particular context.
+            addresses (list): a list of address strs (can be partial)
+
+        Returns:
+            addresses (list): a list of addresses which have non-empty data in
+                merkle tree
+
+        Raises:
+            AuthorizationException: Raised when an address in address_list is
+                not authorized either by not being in the inputs for the
+                txn associated with this context, or it is under a namespace
+                but the characters that are under the namespace are not valid
+                address characters.
+        """
+
+        if context_id not in self._contexts:
+            return []
+        context = self._contexts[context_id]
+
+        # list to return
+        requested_addresses = []
+
+        for add in addresses:
+            for context_address in context:
+                if not add.startswith(context_address):
+                    raise AuthorizationException(address=add)
+
+        tree = MerkleDatabase(self._database, context.merkle_root)
+        all_addresses = tree.addresses()
+        LOGGER.info(all_addresses)
+        for add in all_addresses:
+            for context_address in context:
+                if add.startswith(context_address):
+                    requested_addresses.append(add)
+        LOGGER.info(requested_addresses)
+        requested_addresses.sort()
+        return requested_addresses
 
     def set(self, context_id, address_value_list):
         """Within a context, sets addresses to a value.
@@ -414,6 +471,7 @@ class ContextManager:
             if clean_up:
                 self.delete_contexts(context_ids_already_searched)
             return state_hash
+
         return _squash
 
     def stop(self):

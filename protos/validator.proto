@@ -66,6 +66,10 @@ message Message {
         TP_EVENT_ADD_REQUEST = 15;
         // Response from validator to tell transaction processor that event has been created
         TP_EVENT_ADD_RESPONSE = 16;
+        // State list request to get all addresses having non empty data
+        TP_STATE_LIST_REQUEST = 17;
+        // State list response to get all addresses having non empty data
+        TP_STATE_LIST_RESPONSE = 18;
 
         // Submission of a batchlist from the web api or another client to the validator
         CLIENT_BATCH_SUBMIT_REQUEST = 100;

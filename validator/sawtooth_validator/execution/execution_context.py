@@ -89,6 +89,10 @@ class ExecutionContext:
         with self._lock:
             return self._contains(item)
 
+    def __iter__(self):
+        with self._lock:
+            return iter(self._read_list)
+
     def _get(self, address):
         value = None
         if self._contains(address):

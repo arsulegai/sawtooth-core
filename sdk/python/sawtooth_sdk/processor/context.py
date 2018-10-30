@@ -184,3 +184,34 @@ class Context:
             raise InternalError(
                 "Failed to add event: ({}, {}, {})".format(
                     event_type, attributes, data))
+
+    def list_addresses(self, addresses=None, timeout=None):
+        """
+        list_addresses queries the validator state for each of the
+        addresses where non empty data is stored. The addresses that have
+        been set are returned in a list.
+
+        Args:
+            timeout: optional timeout, in seconds
+        Returns:
+            results (list): a list of addresses
+
+        Raises:
+            AuthorizationException
+        """
+        request_addresses = []
+        if addresses:
+            request_addresses = addresses
+        request = state_context_pb2.TpStateAddressesListRequest(
+            context_id=self._context_id,
+            addresses=request_addresses)
+        response_string = self._stream.send(
+            Message.TP_STATE_LIST_REQUEST,
+            request.SerializeToString()).result(timeout).content
+        response = state_context_pb2.TpStateAddressesListResponse()
+        response.ParseFromString(response_string)
+        if response.status == \
+                state_context_pb2.TpStateGetResponse.AUTHORIZATION_ERROR:
+            raise AuthorizationException(
+                'Tried to list unauthorized address')
+        return response.addresses

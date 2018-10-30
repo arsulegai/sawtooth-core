@@ -114,3 +114,23 @@ message TpEventAddResponse {
     }
     Status status = 2;
 }
+
+// A request from a handler/tp for list of addresses with valid data
+message TpStateAddressesListRequest {
+    // The context id that references a context in the contextmanager
+    string context_id = 1;
+    repeated string addresses = 2;
+}
+
+// A response from the contextmanager/validator with a series of State entries
+// having valid data
+message TpStateAddressesListResponse {
+    enum Status {
+        STATUS_UNSET = 0;
+        OK = 1;
+        AUTHORIZATION_ERROR = 2;
+    }
+
+    repeated string addresses = 1;
+    Status status = 2;
+}

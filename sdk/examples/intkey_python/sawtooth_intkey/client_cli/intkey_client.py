@@ -170,6 +170,19 @@ class IntkeyClient:
             nonce=hex(random.randint(0, 2**64))
         ).SerializeToString()
 
+        if verb == 'dec':
+            header = TransactionHeader(
+                signer_public_key=self._signer.get_public_key().as_hex(),
+                family_name="intkey",
+                family_version="1.0",
+                inputs=[self._get_prefix()],
+                outputs=[self._get_prefix()],
+                dependencies=[],
+                payload_sha512=_sha512(payload),
+                batcher_public_key=self._signer.get_public_key().as_hex(),
+                nonce=hex(random.randint(0, 2**64))
+            ).SerializeToString()
+
         signature = self._signer.sign(header)
 
         transaction = Transaction(

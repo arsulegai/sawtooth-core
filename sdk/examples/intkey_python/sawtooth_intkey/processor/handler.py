@@ -124,6 +124,12 @@ def _validate_value(value):
 
 def _get_state_data(name, context):
     address = make_intkey_address(name)
+    # LOGGER.info("Partial")
+    # LOGGER.info(context.list_addresses(addresses=[INTKEY_ADDRESS_PREFIX]))
+    LOGGER.info("Full")
+    LOGGER.info(context.list_addresses(addresses=[address]))
+    LOGGER.info("Nothing")
+    LOGGER.info(context.list_addresses())
 
     state_entries = context.get_state([address])
 

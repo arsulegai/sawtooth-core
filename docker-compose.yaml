@@ -28,6 +28,10 @@ services:
     volumes:
       - ./:/project/sawtooth-core
     container_name: sawtooth-settings-tp-local
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=validator,${no_proxy}'
     depends_on:
       - validator
     command: |
@@ -52,6 +56,10 @@ services:
     volumes:
       - ./:/project/sawtooth-core
     container_name: intkey-tp-python-local
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=validator,${no_proxy}'
     depends_on:
       - validator
     command: |
@@ -63,7 +71,6 @@ services:
         intkey-tp-python -vv -C tcp://validator:4004
       "
     stop_signal: SIGKILL
-
 
   xo-tp-python:
     build:
@@ -77,6 +84,10 @@ services:
     volumes:
       - ./:/project/sawtooth-core
     container_name: xo-tp-python-local
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=validator,${no_proxy}'
     depends_on:
       - validator
     command: |
@@ -131,6 +142,10 @@ services:
     ports:
       - "4004:4004"
     # start the validator with an empty genesis batch
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=validator,eth0,${no_proxy}'
     command: |
       bash -c "
         bin/protogen
@@ -165,6 +180,10 @@ services:
     volumes:
       - ./:/project/sawtooth-core
     container_name: sawtooth-rest-api-local
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=validator,rest-api,${no_proxy}'
     ports:
       - "8008:8008"
     depends_on:
@@ -192,6 +211,10 @@ services:
     volumes:
       - ./:/project/sawtooth-core
     container_name: sawtooth-devmode-engine-rust-local
+    environment:
+      - 'http_proxy=${http_proxy}'
+      - 'https_proxy=${https_proxy}'
+      - 'no_proxy=validator,${no_proxy}'
     depends_on:
       - validator
     command: |

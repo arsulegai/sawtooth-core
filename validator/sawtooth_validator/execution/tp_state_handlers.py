@@ -195,3 +195,42 @@ class TpEventAddHandler(Handler):
             status=HandlerStatus.RETURN,
             message_out=ack,
             message_type=validator_pb2.Message.TP_EVENT_ADD_RESPONSE)
+
+
+class TpStateAddressesListRequestHandler(Handler):
+    def __init__(self, context_manager):
+        """
+
+        Args:
+            context_manager (sawtooth_validator.context_manager.
+            ContextManager):
+        """
+        self._context_manager = context_manager
+
+    def handle(self, connection_id, message_content):
+        get_request = state_context_pb2.TpStateAddressesListRequest()
+        get_request.ParseFromString(message_content)
+        try:
+            return_values = self._context_manager.list_data_addresses(
+                get_request.context_id,
+                get_request.addresses)
+            LOGGER.info(return_values)
+        except AuthorizationException:
+            response = \
+                state_context_pb2.TpStateAddressesListResponse(
+                    status=state_context_pb2.
+                    TpStateGetResponse.AUTHORIZATION_ERROR)
+            return HandlerResult(
+                HandlerStatus.RETURN,
+                response,
+                validator_pb2.Message.TP_STATE_LIST_RESPONSE)
+
+
+        LOGGER.info(return_values)
+        response = state_context_pb2.TpStateAddressesListResponse(
+            status=state_context_pb2.TpStateGetResponse.OK,
+            addresses=return_values)
+        return HandlerResult(
+            HandlerStatus.RETURN,
+            response,
+            validator_pb2.Message.TP_STATE_LIST_RESPONSE)
