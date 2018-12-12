@@ -366,7 +366,7 @@ class ContextManager:
             return []
         context = self._contexts[context_id]
 
-        # list to return
+        # list to return, it's a temporary storage
         requested_addresses = []
 
         for add in addresses:
@@ -381,9 +381,23 @@ class ContextManager:
             for context_address in context:
                 if add.startswith(context_address):
                     requested_addresses.append(add)
-        LOGGER.info(requested_addresses)
-        requested_addresses.sort()
-        return requested_addresses
+
+        to_return = []
+        if len(addresses) > 0:
+            for add in requested_addresses:
+                found = False
+                for request_address in addresses:
+                    if add.startswith(request_address):
+                        found = True
+                        break
+                if found:
+                    to_return.append(add)
+        else:
+            to_return = requested_addresses
+
+        LOGGER.info(to_return)
+        to_return.sort()
+        return to_return
 
     def set(self, context_id, address_value_list):
         """Within a context, sets addresses to a value.
