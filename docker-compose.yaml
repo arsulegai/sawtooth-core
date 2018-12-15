@@ -30,6 +30,10 @@ services:
     container_name: sawtooth-settings-tp-local
     depends_on:
       - validator
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - no_proxy=${no_proxy},validator
     command: |
       bash -c "
         cd families/settings/sawtooth_settings
@@ -130,6 +134,10 @@ services:
       - 5050
     ports:
       - "4004:4004"
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - no_proxy=${no_proxy},validator,eth0
     # start the validator with an empty genesis batch
     command: |
       bash -c "
@@ -200,6 +208,10 @@ services:
     volumes:
       - ./:/project/sawtooth-core
     container_name: sawtooth-devmode-engine-rust-local
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - no_proxy=${no_proxy},validator
     depends_on:
       - validator
     command: |
