@@ -56,6 +56,7 @@ class TransactionProcessor:
         self._stream = Stream(url)
         self._url = url
         self._handlers = []
+        self._header_style = TpRegisterRequest.STYLE_UNSET
 
     @property
     def zmq_id(self):
@@ -67,6 +68,14 @@ class TransactionProcessor:
             handler (TransactionHandler): the handler to be added
         """
         self._handlers.append(handler)
+
+    def set_header_style(self, style):
+        """Sets a flag to indicate validator that transaction header field
+        must be sent as is in TpProcessRequest.
+        Args:
+            style (TpProcessRequestHeaderStyle): enum value to set header style
+        """
+        self._header_style = style
 
     def _matches(self, handler, header):
         return header.family_name == handler.family_name \
@@ -95,7 +104,8 @@ class TransactionProcessor:
                 [TpRegisterRequest(
                     family=n,
                     version=v,
-                    namespaces=h.namespaces)
+                    namespaces=h.namespaces,
+                    request_header_style=self._header_style)
                  for n, v in itertools.product(
                     [h.family_name],
                      h.family_versions,)] for h in self._handlers])

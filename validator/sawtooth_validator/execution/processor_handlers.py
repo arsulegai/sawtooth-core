@@ -44,6 +44,15 @@ class ProcessorRegisterHandler(Handler):
         else:
             max_occupancy = request.max_occupancy
 
+        if request.request_header_style == \
+                processor_pb2.TpRegisterRequest.STYLE_UNSET:
+            header_style = processor_pb2.TpRegisterRequest.EXPANDED
+            LOGGER.debug('Transaction Processor with connection_id=%s request '
+                         'header style is not set, de-serialized header only '
+                         'will be sent', connection_id)
+        else:
+            header_style = request.request_header_style
+
         LOGGER.info(
             'registered transaction processor: connection_id=%s, family=%s, '
             'version=%s, namespaces=%s, max_occupancy=%s',
@@ -60,7 +69,8 @@ class ProcessorRegisterHandler(Handler):
         processor = processor_manager.Processor(
             connection_id,
             request.namespaces,
-            max_occupancy)
+            max_occupancy,
+            header_style)
 
         self._collection[processor_type] = processor
 

@@ -37,6 +37,7 @@ use messages::processor::TpProcessRequest;
 use messages::processor::TpProcessResponse;
 use messages::processor::TpProcessResponse_Status;
 use messages::processor::TpRegisterRequest;
+use messages::processor::TpRegisterRequest_TpProcessRequestHeaderStyle;
 use messages::processor::TpUnregisterRequest;
 use messages::validator::Message_MessageType;
 use messaging::stream::MessageConnection;
@@ -62,6 +63,7 @@ pub struct TransactionProcessor<'a> {
     endpoint: String,
     conn: ZmqMessageConnection,
     handlers: Vec<&'a TransactionHandler>,
+    header_style: TpRegisterRequest_TpProcessRequestHeaderStyle,
 }
 
 impl<'a> TransactionProcessor<'a> {
@@ -73,6 +75,7 @@ impl<'a> TransactionProcessor<'a> {
             endpoint: String::from(endpoint),
             conn: ZmqMessageConnection::new(endpoint),
             handlers: Vec::new(),
+            header_style: TpRegisterRequest_TpProcessRequestHeaderStyle::STYLE_UNSET,
         }
     }
 
@@ -85,6 +88,15 @@ impl<'a> TransactionProcessor<'a> {
         self.handlers.push(handler);
     }
 
+    /// Set header style flag to send TpProcessRequest
+    ///
+    /// # Arguments
+    ///
+    /// * style - header style required in TpProcessRequest
+    pub fn set_header_style(&mut self, style: TpRegisterRequest_TpProcessRequestHeaderStyle) {
+        self.header_style = style;
+    }
+
     fn register(&mut self, sender: &ZmqMessageSender, unregister: &Arc<AtomicBool>) -> bool {
         for handler in &self.handlers {
             for version in handler.family_versions() {
@@ -92,6 +104,7 @@ impl<'a> TransactionProcessor<'a> {
                 request.set_family(handler.family_name().clone());
                 request.set_version(version.clone());
                 request.set_namespaces(RepeatedField::from_vec(handler.namespaces().clone()));
+                request.set_request_header_style(self.header_style.clone());
                 info!(
                     "sending TpRegisterRequest: {} {}",
                     &handler.family_name(),
