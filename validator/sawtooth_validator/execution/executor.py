@@ -159,8 +159,7 @@ class TransactionExecutorThread:
             if self._scheduler.is_transaction_in_schedule(req.signature):
                 self._execute(
                     processor_type=processor_type,
-                    content=request,
-                    signature=req.signature)
+                    process_request=req)
 
         else:
             self._context_manager.delete_contexts(
@@ -296,29 +295,31 @@ class TransactionExecutorThread:
                 header=header,
                 payload=txn.payload,
                 signature=txn.header_signature,
-                context_id=context_id).SerializeToString()
+                context_id=context_id,
+                header_bytes=txn.header)
 
             # Since we have already checked if the transaction should be failed
             # all other cases should either be executed or waited for.
             self._execute(
                 processor_type=processor_type,
-                content=content,
-                signature=txn.header_signature)
+                process_request=content)
 
         self._done = True
 
-    def _execute(self, processor_type, content, signature):
+    def _execute(self, processor_type, process_request):
         try:
             processor = self._processor_manager.get_next_of_type(
                 processor_type=processor_type)
         except WaitCancelledException:
             LOGGER.exception("Transaction %s cancelled while "
                              "waiting for available processor",
-                             content.signature)
+                             process_request.signature)
             return
-
+        if processor.request_header_style() != \
+                processor_pb2.TpRegisterRequest.RAW:
+            process_request.header_bytes = b''
         self._send_and_process_result(
-            content, processor.connection_id, signature)
+            process_request, processor.connection_id)
 
     def _fail_transaction(self, txn_signature,
                           context_id=None, error_message=None,
@@ -336,7 +337,8 @@ class TransactionExecutorThread:
                 error_message,
                 error_data)
 
-    def _send_and_process_result(self, content, connection_id, signature):
+    def _send_and_process_result(self, process_request, connection_id):
+        content = process_request.SerializeToString()
         fut = self._service.send(
             validator_pb2.Message.TP_PROCESS_REQUEST,
             content,
@@ -345,10 +347,10 @@ class TransactionExecutorThread:
         self._in_process_transactions_count.inc()
         if connection_id in self._open_futures:
             self._open_futures[connection_id].update(
-                {signature: fut})
+                {process_request.signature: fut})
         else:
             self._open_futures[connection_id] = \
-                {signature: fut}
+                {process_request.signature: fut}
 
     def remove_broken_connection(self, connection_id):
         self._processor_manager.remove(connection_id)
