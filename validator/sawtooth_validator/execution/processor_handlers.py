@@ -26,7 +26,11 @@ from sawtooth_validator.networking.dispatch import HandlerStatus
 LOGGER = logging.getLogger(__name__)
 
 DEFAULT_MAX_OCCUPANCY = 10
-
+# This is the version used by SDK to match if validator supports feature it
+# requested during registration. It should only be incremented when there are
+# changes in TpRegisterRequest. Remember to sync this information in SDK if
+# changed.
+SDK_PROTOCOL_VERSION = 1
 
 class ProcessorRegisterHandler(Handler):
     def __init__(self, processor_collection):
@@ -44,6 +48,15 @@ class ProcessorRegisterHandler(Handler):
         else:
             max_occupancy = request.max_occupancy
 
+        # If the request_header_style parameter is not set in the request,
+        # consider default behavior of sending EXPANDED (de-serialized) header.
+        # This is for backward compatibility.
+        if request.request_header_style == \
+                processor_pb2.TpRegisterRequest.STYLE_UNSET:
+            header_style = processor_pb2.TpRegisterRequest.EXPANDED
+        else:
+            header_style = request.request_header_style
+
         LOGGER.info(
             'registered transaction processor: connection_id=%s, family=%s, '
             'version=%s, namespaces=%s, max_occupancy=%s',
@@ -60,12 +73,16 @@ class ProcessorRegisterHandler(Handler):
         processor = processor_manager.Processor(
             connection_id,
             request.namespaces,
-            max_occupancy)
+            max_occupancy,
+            header_style)
 
         self._collection[processor_type] = processor
 
         ack = processor_pb2.TpRegisterResponse()
         ack.status = ack.OK
+        # Send back the requested style, SDK can cross verify if validator it
+        # is talking to has support for it
+        ack.protocol_version = SDK_PROTOCOL_VERSION
 
         return HandlerResult(
             status=HandlerStatus.RETURN,
