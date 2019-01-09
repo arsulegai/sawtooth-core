@@ -59,6 +59,7 @@ class IntkeyTransactionHandler(TransactionHandler):
 
     def apply(self, transaction, context):
         verb, name, value = _unpack_transaction(transaction)
+        LOGGER.error("Received header is %s", transaction.raw_header)
 
         state = _get_state_data(name, context)
 

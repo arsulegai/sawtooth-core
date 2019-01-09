@@ -23,6 +23,7 @@ from sawtooth_sdk.processor.log import log_configuration
 from sawtooth_sdk.processor.config import get_log_config
 from sawtooth_sdk.processor.config import get_log_dir
 from sawtooth_intkey.processor.handler import IntkeyTransactionHandler
+from sawtooth_sdk.protobuf.processor_pb2 import TpRegisterRequest
 
 
 DISTRIBUTION_NAME = 'sawtooth-intkey'
@@ -86,6 +87,7 @@ def main(args=None):
         handler = IntkeyTransactionHandler()
 
         processor.add_handler(handler)
+        processor.set_header_style(TpRegisterRequest.RAW)
 
         processor.start()
     except KeyboardInterrupt:

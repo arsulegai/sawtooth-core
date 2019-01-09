@@ -315,6 +315,7 @@ class TransactionExecutorThread:
                              "waiting for available processor",
                              content.signature)
             return
+        LOGGER.error("From validator %s", content.raw_header)
         if processor.request_header_style() != \
                 processor_pb2.TpRegisterRequest.RAW:
             content.raw_header = b''
