@@ -274,6 +274,7 @@ impl TransactionHandler for IntkeyTransactionHandler {
         request: &TpProcessRequest,
         context: &mut TransactionContext,
     ) -> Result<(), ApplyError> {
+        error!("In TP as received {:?}", request.get_raw_header());
         let payload = IntkeyPayload::new(request.get_payload());
         let payload = match payload {
             Err(e) => return Err(e),

@@ -34,6 +34,7 @@ use log4rs::encode::pattern::PatternEncoder;
 use std::process;
 
 use sawtooth_sdk::processor::TransactionProcessor;
+use sawtooth_sdk::messages::processor::TpRegisterRequest_TpProcessRequestHeaderStyle;
 
 use handler::IntkeyTransactionHandler;
 
@@ -92,5 +93,6 @@ fn main() {
     info!("Console logging level: {}", console_log_level);
 
     processor.add_handler(&handler);
+    processor.set_header_style(TpRegisterRequest_TpProcessRequestHeaderStyle::RAW);
     processor.start();
 }
