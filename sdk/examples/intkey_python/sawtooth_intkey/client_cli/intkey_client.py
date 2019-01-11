@@ -70,6 +70,9 @@ class IntkeyClient:
     def dec(self, name, value, wait=None):
         return self._send_transaction('dec', name, value, wait=wait)
 
+    def reproduce_issue(self):
+        return self._send_transaction('issue', 'YONI', 1)
+
     def list(self):
         result = self._send_request(
             "state?address={}".format(
@@ -156,7 +159,10 @@ class IntkeyClient:
         })
 
         # Construct the address
-        address = self._get_address(name)
+        if name is 'YONI' and value is 1:
+            address = self._get_prefix()
+        else:
+            address = self._get_address(name)
 
         header = TransactionHeader(
             signer_public_key=self._signer.get_public_key().as_hex(),
@@ -169,19 +175,6 @@ class IntkeyClient:
             batcher_public_key=self._signer.get_public_key().as_hex(),
             nonce=hex(random.randint(0, 2**64))
         ).SerializeToString()
-
-        if verb == 'dec':
-            header = TransactionHeader(
-                signer_public_key=self._signer.get_public_key().as_hex(),
-                family_name="intkey",
-                family_version="1.0",
-                inputs=[self._get_prefix()],
-                outputs=[self._get_prefix()],
-                dependencies=[],
-                payload_sha512=_sha512(payload),
-                batcher_public_key=self._signer.get_public_key().as_hex(),
-                nonce=hex(random.randint(0, 2**64))
-            ).SerializeToString()
 
         signature = self._signer.sign(header)
 

@@ -27,7 +27,7 @@ from sawtooth_sdk.processor.exceptions import InternalError
 LOGGER = logging.getLogger(__name__)
 
 
-VALID_VERBS = 'set', 'inc', 'dec'
+VALID_VERBS = 'set', 'inc', 'dec', 'issue'
 
 MIN_VALUE = 0
 MAX_VALUE = 4294967295
@@ -123,15 +123,11 @@ def _validate_value(value):
 
 
 def _get_state_data(name, context):
-    address = make_intkey_address(name)
-    # LOGGER.info("Partial")
-    # LOGGER.info(context.list_addresses(addresses=[INTKEY_ADDRESS_PREFIX]))
-    LOGGER.info("Full")
-    LOGGER.info(context.list_addresses(addresses=[address]))
-    LOGGER.info("Nothing")
-    LOGGER.info(context.list_addresses())
-
-    state_entries = context.get_state([address])
+    if name is 'YONI':
+        state_entries = context.get_state([INTKEY_ADDRESS_PREFIX])
+    else:
+        address = make_intkey_address(name)
+        state_entries = context.get_state([address])
 
     try:
         return cbor.loads(state_entries[0].data)
@@ -142,14 +138,21 @@ def _get_state_data(name, context):
 
 
 def _set_state_data(name, state, context):
-    address = make_intkey_address(name)
+    if name is 'YONI' and state is 'REPRODUCE':
+        all_addresses = context.list_addresses()
+        LOGGER.debug("Deleting single entry {}".format(all_addresses[0]))
+        context.delete_state([all_addresses[0]])
+        LOGGER.debug("Deleting all addresses {}".format(all_addresses[1:]))
+        context.delete_state(all_addresses[1:])
+    else:
+        address = make_intkey_address(name)
 
-    encoded = cbor.dumps(state)
+        encoded = cbor.dumps(state)
 
-    addresses = context.set_state({address: encoded})
+        addresses = context.set_state({address: encoded})
 
-    if not addresses:
-        raise InternalError('State error')
+        if not addresses:
+            raise InternalError('State error')
 
 
 def _do_intkey(verb, name, value, state):
@@ -157,6 +160,7 @@ def _do_intkey(verb, name, value, state):
         'set': _do_set,
         'inc': _do_inc,
         'dec': _do_dec,
+        'issue': _do_reproduce_issue,
     }
 
     try:
@@ -224,3 +228,10 @@ def _do_dec(name, value, state):
     updated[name] = decd
 
     return updated
+
+
+def _do_reproduce_issue(name, value, state):
+    msg = 'Trying to reproduce issue reported by YONI'
+    LOGGER.debug(msg)
+
+    return 'REPRODUCE'

@@ -114,6 +114,7 @@ def create_parser(prog_name):
     add_dec_parser(subparsers, parent_parser)
     add_show_parser(subparsers, parent_parser)
     add_list_parser(subparsers, parent_parser)
+    add_issue_parser(subparsers, parent_parser)
 
     add_generate_parser(subparsers, parent_parser)
     add_load_parser(subparsers, parent_parser)
@@ -283,6 +284,21 @@ def do_show(args):
     print('{}: {}'.format(name, value))
 
 
+def add_issue_parser(subparsers, parent_parser):
+    message = 'Tried to reproduce the issue - reported by Yoni'
+
+    parser = subparsers.add_parser(
+        'issue',
+        parents=[parent_parser],
+        description=message,
+        help='Reproduces issue scenario reported by Yoni')
+
+    parser.add_argument(
+        '--url',
+        type=str,
+        help='specify URL of REST API')
+
+
 def add_list_parser(subparsers, parent_parser):
     message = 'Shows the values of all keys in intkey state.'
 
@@ -304,6 +320,11 @@ def do_list(args):
     for pair in results:
         for name, value in pair.items():
             print('{}: {}'.format(name, value))
+
+
+def do_reproduce_issue(args):
+    client = _get_client(args, False)
+    client.reproduce_issue()
 
 
 def _get_client(args):
@@ -352,6 +373,8 @@ def main(prog_name=os.path.basename(sys.argv[0]), args=None):
         do_show(args)
     elif args.command == 'list':
         do_list(args)
+    elif args.command == 'issue':
+        do_reproduce_issue(args)
     elif args.command == 'generate':
         do_generate(args)
     elif args.command == 'populate':
