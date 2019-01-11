@@ -298,6 +298,11 @@ def add_issue_parser(subparsers, parent_parser):
         type=str,
         help='specify URL of REST API')
 
+    parser.add_argument(
+        '--keyfile',
+        type=str,
+        help="identify file containing user's private key")
+
 
 def add_list_parser(subparsers, parent_parser):
     message = 'Shows the values of all keys in intkey state.'
@@ -323,7 +328,7 @@ def do_list(args):
 
 
 def do_reproduce_issue(args):
-    client = _get_client(args, False)
+    client = _get_client(args)
     client.reproduce_issue()
 
 
