@@ -64,6 +64,18 @@ class IntkeyTransactionHandler(TransactionHandler):
 
         updated_state = _do_intkey(verb, name, value, state)
 
+
+        if verb == 'issue':
+            LOGGER.info('verb is "dec"')
+            address = make_intkey_address(name + "1")
+            LOGGER.info('Deleting {}'.format(address))
+            res = context.delete_state([address])
+            LOGGER.info('Deleted {}'.format(res))
+            address = make_intkey_address(name + "2")
+            LOGGER.info('Deleting {}'.format(address))
+            res = context.delete_state([address])
+            LOGGER.info('Deleted {}'.format(res))
+
         _set_state_data(name, updated_state, context)
 
 
@@ -123,11 +135,8 @@ def _validate_value(value):
 
 
 def _get_state_data(name, context):
-    if name is 'YONI':
-        state_entries = context.get_state([INTKEY_ADDRESS_PREFIX])
-    else:
-        address = make_intkey_address(name)
-        state_entries = context.get_state([address])
+    address = make_intkey_address(name)
+    state_entries = context.get_state([address])
 
     try:
         return cbor.loads(state_entries[0].data)
@@ -138,21 +147,14 @@ def _get_state_data(name, context):
 
 
 def _set_state_data(name, state, context):
-    if name is 'YONI' and state is 'REPRODUCE':
-        all_addresses = context.list_addresses()
-        LOGGER.debug("Deleting single entry {}".format(all_addresses[0]))
-        context.delete_state([all_addresses[0]])
-        LOGGER.debug("Deleting all addresses {}".format(all_addresses[1:]))
-        context.delete_state(all_addresses[1:])
-    else:
-        address = make_intkey_address(name)
+    address = make_intkey_address(name)
 
-        encoded = cbor.dumps(state)
+    encoded = cbor.dumps(state)
 
-        addresses = context.set_state({address: encoded})
+    addresses = context.set_state({address: encoded})
 
-        if not addresses:
-            raise InternalError('State error')
+    if not addresses:
+        raise InternalError('State error')
 
 
 def _do_intkey(verb, name, value, state):
@@ -160,7 +162,7 @@ def _do_intkey(verb, name, value, state):
         'set': _do_set,
         'inc': _do_inc,
         'dec': _do_dec,
-        'issue': _do_reproduce_issue,
+        'issue': _do_set,
     }
 
     try:

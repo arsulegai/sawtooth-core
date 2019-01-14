@@ -159,6 +159,7 @@ services:
         cp ./target/release/libsawtooth_validator.so lib/libsawtooth_validator.so
         sawadm keygen
         sawadm genesis
+        export RUST_BACKTRACE=1
         sawtooth-validator -vv \
             --endpoint tcp://validator:8800 \
             --bind component:tcp://eth0:4004 \
