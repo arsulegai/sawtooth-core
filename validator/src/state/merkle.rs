@@ -226,6 +226,7 @@ impl MerkleDatabase {
         let mut path_map = HashMap::new();
 
         let mut deletions = HashSet::new();
+        let mut additions = HashSet::new();
 
         for (set_address, set_value) in set_items {
             let tokens = tokenize_address(set_address);
@@ -239,6 +240,7 @@ impl MerkleDatabase {
             }
             path_map.extend(set_path_map);
         }
+        additions.insert(path_map.keys());
 
         for del_address in delete_items.iter() {
             let tokens = tokenize_address(del_address);
@@ -262,7 +264,7 @@ impl MerkleDatabase {
                     parent_node.children.is_empty()
                 };
 
-                if remove_parent {
+                if remove_parent && !additions.contains(parent_address) {
                     // empty node delete it.
                     path_map.remove(parent_address);
                 } else {
