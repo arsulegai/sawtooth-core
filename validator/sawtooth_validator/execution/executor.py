@@ -170,9 +170,6 @@ class TransactionExecutorThread:
             if self._scheduler.is_transaction_in_schedule(req.signature):
                 self._execute(
                     processor_type=processor_type,
-                    transaction=None,
-                    header=None,
-                    context_id=None,
                     process_req=req)
 
         else:
