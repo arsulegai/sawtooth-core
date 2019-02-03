@@ -170,10 +170,10 @@ class TransactionExecutorThread:
             if self._scheduler.is_transaction_in_schedule(req.signature):
                 self._execute(
                     processor_type=processor_type,
-                    process_request=req,
-                    header_bytes=req.header_bytes if req.HasField(
-                        'header_bytes') else b'',
-                    header=request_header)
+                    transaction=None,
+                    header=None,
+                    context_id=None,
+                    process_req=req)
 
         else:
             self._context_manager.delete_contexts(
@@ -305,40 +305,50 @@ class TransactionExecutorThread:
                     is_valid=False,
                     context_id=None)
                 continue
-            content = processor_pb2.TpProcessRequest(
-                payload=txn.payload,
-                signature=txn.header_signature,
-                context_id=context_id)
 
             # Since we have already checked if the transaction should be failed
             # all other cases should either be executed or waited for.
             self._execute(
                 processor_type=processor_type,
-                process_request=content,
-                header_bytes=txn.header,
-                header=header)
+                transaction=txn,
+                header=header,
+                context_id=context_id)
 
         self._done = True
 
-    def _execute(self, processor_type, process_request, header_bytes, header):
+    # process_req if the request is already constructed but it was
+    # removed from scheduler for some reason.
+    def _execute(self, processor_type, transaction=None, header=None,
+                 context_id=None, process_req=None):
         try:
             processor = self._processor_manager.get_next_of_type(
                 processor_type=processor_type)
         except WaitCancelledException:
             LOGGER.exception("Transaction %s cancelled while "
                              "waiting for available processor",
-                             process_request.signature)
+                             transaction.header_signature)
             return
-        if processor.request_header_style() == \
-                processor_pb2.TpRegisterRequest.EXPANDED:
-            process_request.header = header
-        elif processor.request_header_style() == \
-                processor_pb2.TpRegisterRequest.RAW:
-            process_request.header_bytes = header_bytes
+        if process_req:
+            process_request = process_req
         else:
-            raise AssertionError(
-                "TpRegisterRequest should request either expanded or raw "
-                "header style. Currently there's none.")
+            if processor.request_header_style() == \
+                    processor_pb2.TpRegisterRequest.EXPANDED:
+                process_request = processor_pb2.TpProcessRequest(
+                    header=header,
+                    payload=transaction.payload,
+                    signature=transaction.header_signature,
+                    context_id=context_id)
+            elif processor.request_header_style() == \
+                    processor_pb2.TpRegisterRequest.RAW:
+                process_request = processor_pb2.TpProcessRequest(
+                    header_bytes=transaction.header,
+                    payload=transaction.payload,
+                    signature=transaction.header_signature,
+                    context_id=context_id)
+            else:
+                raise AssertionError(
+                    "TpRegisterRequest should request either expanded or raw "
+                    "header style. Currently there's none.")
         self._send_and_process_result(
             process_request, processor.connection_id)
 
