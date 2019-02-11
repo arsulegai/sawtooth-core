@@ -36,6 +36,7 @@ from sawtooth_sdk.protobuf.processor_pb2 import TpUnregisterRequest
 from sawtooth_sdk.protobuf.processor_pb2 import TpUnregisterResponse
 from sawtooth_sdk.protobuf.processor_pb2 import TpProcessRequest
 from sawtooth_sdk.protobuf.processor_pb2 import TpProcessResponse
+from sawtooth_sdk.protobuf.transaction_pb2 import TransactionHeader
 from sawtooth_sdk.protobuf.network_pb2 import PingResponse
 from sawtooth_sdk.protobuf.validator_pb2 import Message
 
@@ -136,7 +137,11 @@ class TransactionProcessor:
         request = TpProcessRequest()
         request.ParseFromString(msg.content)
         state = Context(self._stream, request.context_id)
-        header = request.header
+        header = TransactionHeader()
+        if self._header_style == TpRegisterRequest.RAW:
+            header.ParseFromString(request.header_bytes)
+        else:
+            header = request.header
         try:
             if not self._stream.is_ready():
                 raise ValidatorConnectionError()
