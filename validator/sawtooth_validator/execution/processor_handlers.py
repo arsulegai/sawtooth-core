@@ -66,6 +66,20 @@ class ProcessorRegisterHandler(Handler):
             list(request.namespaces),
             max_occupancy)
 
+        # Reject the request if requested version cannot be handled,
+        # validator does backward compatible support
+        if request.protocol_version > SDK_PROTOCOL_VERSION:
+            ack = processor_pb2.TpRegisterResponse()
+            ack.status = ack.ERROR
+            # Send protocol_version of validator, so that SDK can cross verify if
+            # it can get all services requested
+            ack.protocol_version = SDK_PROTOCOL_VERSION
+
+            return HandlerResult(
+                status=HandlerStatus.RETURN,
+                message_out=ack,
+                message_type=validator_pb2.Message.TP_REGISTER_RESPONSE)
+
         processor_type = processor_manager.ProcessorType(
             request.family,
             request.version)
@@ -80,8 +94,8 @@ class ProcessorRegisterHandler(Handler):
 
         ack = processor_pb2.TpRegisterResponse()
         ack.status = ack.OK
-        # Send back the requested style, SDK can cross verify if validator it
-        # is talking to has support for it
+        # Send protocol_version of validator, so that SDK can cross verify if
+        # it can get all services requested
         ack.protocol_version = SDK_PROTOCOL_VERSION
 
         return HandlerResult(

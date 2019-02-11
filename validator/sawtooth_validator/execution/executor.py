@@ -106,14 +106,12 @@ class TransactionExecutorThread:
         # If raw header bytes were sent then de-serialize to get
         # transaction family name and version
         request_header = transaction_pb2.TransactionHeader()
-        if req.HasField('header_bytes'):
-            request_header.ParseFromString(req.header_bytes)
-        elif req.HasField('header'):
+        if req.header_bytes == b'':
+            # header field must be present
             request_header = req.header
         else:
-            raise AssertionError(
-                "TpProcessRequest should have either expanded or raw header."
-                "Currently there's none.")
+            # header_bytes must be present
+            request_header.ParseFromString(req.header_bytes)
         response = processor_pb2.TpProcessResponse()
         response.ParseFromString(result.content)
 
@@ -170,7 +168,7 @@ class TransactionExecutorThread:
             if self._scheduler.is_transaction_in_schedule(req.signature):
                 self._execute(
                     processor_type=processor_type,
-                    process_req=req)
+                    process_request=req)
 
         else:
             self._context_manager.delete_contexts(
@@ -303,49 +301,45 @@ class TransactionExecutorThread:
                     context_id=None)
                 continue
 
+            process_request = processor_pb2.TpProcessRequest(
+                header=header,
+                payload=txn.payload,
+                signature=txn.header_signature,
+                context_id=context_id,
+                header_bytes=txn.header)
+
             # Since we have already checked if the transaction should be failed
             # all other cases should either be executed or waited for.
             self._execute(
                 processor_type=processor_type,
-                transaction=txn,
-                header=header,
-                context_id=context_id)
+                process_request=process_request)
 
         self._done = True
 
     # process_req if the request is already constructed but it was
     # removed from scheduler for some reason.
-    def _execute(self, processor_type, transaction=None, header=None,
-                 context_id=None, process_req=None):
+    def _execute(self, processor_type, process_request):
         try:
             processor = self._processor_manager.get_next_of_type(
                 processor_type=processor_type)
         except WaitCancelledException:
             LOGGER.exception("Transaction %s cancelled while "
                              "waiting for available processor",
-                             transaction.header_signature)
+                             process_request.signature)
             return
-        if process_req:
-            process_request = process_req
+
+        if processor.request_header_style() == \
+                processor_pb2.TpRegisterRequest.EXPANDED:
+            # Send transaction header with empty header_bytes
+            process_request.header_bytes = b''
+        elif processor.request_header_style() == \
+                processor_pb2.TpRegisterRequest.RAW:
+            # Send empty transaction header with header_bytes
+            process_request.header = transaction_pb2.TransactionHeader()
         else:
-            if processor.request_header_style() == \
-                    processor_pb2.TpRegisterRequest.EXPANDED:
-                process_request = processor_pb2.TpProcessRequest(
-                    header=header,
-                    payload=transaction.payload,
-                    signature=transaction.header_signature,
-                    context_id=context_id)
-            elif processor.request_header_style() == \
-                    processor_pb2.TpRegisterRequest.RAW:
-                process_request = processor_pb2.TpProcessRequest(
-                    header_bytes=transaction.header,
-                    payload=transaction.payload,
-                    signature=transaction.header_signature,
-                    context_id=context_id)
-            else:
-                raise AssertionError(
-                    "TpRegisterRequest should request either expanded or raw "
-                    "header style. Currently there's none.")
+            raise AssertionError(
+                "TpRegisterRequest should request either expanded or raw "
+                "header style. Currently there's none set.")
         self._send_and_process_result(
             process_request, processor.connection_id)
 
