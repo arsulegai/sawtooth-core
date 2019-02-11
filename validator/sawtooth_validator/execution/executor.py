@@ -335,7 +335,7 @@ class TransactionExecutorThread:
         elif processor.request_header_style() == \
                 processor_pb2.TpRegisterRequest.RAW:
             # Send empty transaction header with header_bytes
-            process_request.header = transaction_pb2.TransactionHeader()
+            process_request.header.CopyFrom(transaction_pb2.TransactionHeader())
         else:
             raise AssertionError(
                 "TpRegisterRequest should request either expanded or raw "
