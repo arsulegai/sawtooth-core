@@ -244,16 +244,16 @@ class TransactionProcessor:
             resp = TpRegisterResponse()
             try:
                 resp.ParseFromString(future.result().content)
-                if resp.protocol_version == 0 or resp.protocol_version > \
-                        SDK_PROTOCOL_VERSION:
+                if resp.protocol_version < SDK_PROTOCOL_VERSION:
                     LOGGER.error("Validator version does not have capability "
-                                 "to serve header in %s form. Reverting "
-                                 "registration request with validator.",
-                                 TpProcessRequestHeaderStyle.Name(
-                                     self._header_style))
+                                 "to serve header in requested form. Reverting "
+                                 "registration request with validator.")
                     raise ValidatorVersionError()
                 LOGGER.info("register attempt: %s",
                             TpRegisterResponse.Status.Name(resp.status))
+                if resp.status == TpRegisterResponse.ERROR:
+                    raise RuntimeError("Transaction processor registration "
+                                       "failed")
             except ValidatorConnectionError as vce:
                 LOGGER.info("during waiting for response on registration: %s",
                             vce)
@@ -308,6 +308,9 @@ class TransactionProcessor:
                 # If the validator is not able to respond to the
                 # unregister request, exit.
                 pass
+        except Exception as e:
+            LOGGER.error("Error: %s", e)
+            self.stop()
 
     def stop(self):
         """Closes the connection between the TransactionProcessor and the
