@@ -237,15 +237,16 @@ class GossipBroadcastHandler(Handler):
             # Do not forward message if it has reached its time to live limit
             return HandlerResult(status=HandlerStatus.PASS)
 
-        if tag == GossipMessage.BATCH:
+        #if tag == GossipMessage.BATCH:
             # If we already have this batch, don't forward it
-            if not self._completer.get_batch(obj.header_signature):
-                self._gossip.broadcast_batch(obj, exclude, time_to_live=ttl)
-        elif tag == GossipMessage.BLOCK:
+        #    if not self._completer.get_batch(obj.header_signature):
+        #        self._gossip.broadcast_batch(obj, exclude, time_to_live=ttl)
+        #elif tag == GossipMessage.BLOCK:
             # If we already have this block, don't forward it
-            if not self._completer.get_block(obj.header_signature):
-                self._gossip.broadcast_block(obj, exclude, time_to_live=ttl)
-        elif tag == GossipMessage.CONSENSUS:
+        #    if not self._completer.get_block(obj.header_signature):
+        #        self._gossip.broadcast_block(obj, exclude, time_to_live=ttl)
+        #el
+        if tag == GossipMessage.CONSENSUS:
             self._notifier.notify_peer_message(
                 message=obj,
                 sender_id=bytes.fromhex(
