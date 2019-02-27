@@ -341,7 +341,7 @@ class Gossip:
         connection_id = self._network.public_key_to_connection_id(peer_id)
 
         self.send(
-            validator_pb2.Message.GOSSIP_MESSAGE,
+            validator_pb2.Message.GOSSIP_CONSENSUS_MESSAGE,
             GossipMessage(
                 content_type=GossipMessage.CONSENSUS,
                 content=message.SerializeToString(),
@@ -354,7 +354,7 @@ class Gossip:
                 content_type=GossipMessage.CONSENSUS,
                 content=message.SerializeToString(),
                 time_to_live=self.get_time_to_live()),
-            validator_pb2.Message.GOSSIP_MESSAGE)
+            validator_pb2.Message.GOSSIP_CONSENSUS_MESSAGE)
 
     def send(self, message_type, message, connection_id, one_way=False):
         """Sends a message via the network.

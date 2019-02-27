@@ -205,6 +205,11 @@ def add(
         gossip_message_preprocessor,
         thread_pool)
 
+    dispatcher.set_preprocessor(
+        validator_pb2.Message.GOSSIP_CONSENSUS_MESSAGE,
+        gossip_message_preprocessor,
+        thread_pool)
+
     dispatcher.add_handler(
         validator_pb2.Message.GOSSIP_MESSAGE,
         GossipMessageDuplicateHandler(completer, has_block, has_batch),
@@ -220,11 +225,29 @@ def add(
         ),
         thread_pool)
 
+    # GOSSIP_MESSAGE ) Verify Network Permissions
+    dispatcher.add_handler(
+        validator_pb2.Message.GOSSIP_CONSENSUS_MESSAGE,
+        NetworkPermissionHandler(
+            network=interconnect,
+            permission_verifier=permission_verifier,
+            gossip=gossip
+        ),
+        thread_pool,
+        priority=Priority.HIGH)
+
     # GOSSIP_MESSAGE ) Verifies signature
     dispatcher.add_handler(
         validator_pb2.Message.GOSSIP_MESSAGE,
         signature_verifier.GossipMessageSignatureVerifier(),
         sig_pool)
+
+    # GOSSIP_MESSAGE ) Verifies signature
+    dispatcher.add_handler(
+        validator_pb2.Message.GOSSIP_CONSENSUS_MESSAGE,
+        signature_verifier.GossipMessageSignatureVerifier(),
+        sig_pool,
+        priority=Priority.HIGH)
 
     # GOSSIP_MESSAGE ) Verifies batch structure
     dispatcher.add_handler(
@@ -246,9 +269,10 @@ def add(
     # GOSSIP_MESSAGE ) Determines if this is a consensus message and notifies
     # the consensus engine if it is
     dispatcher.add_handler(
-        validator_pb2.Message.GOSSIP_MESSAGE,
+        validator_pb2.Message.GOSSIP_CONSENSUS_MESSAGE,
         GossipConsensusHandler(gossip=gossip, notifier=consensus_notifier),
-        thread_pool)
+        thread_pool,
+        priority=Priority.HIGH)
 
     # GOSSIP_MESSAGE ) Determines if we should broadcast the
     # message to our peers. It is important that this occur prior

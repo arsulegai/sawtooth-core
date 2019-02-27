@@ -250,6 +250,7 @@ class GossipBroadcastHandler(Handler):
 
         if ttl <= 0:
             # Do not forward message if it has reached its time to live limit
+            LOGGER.info("Received %s which is not re-broadcasted", tag)
             return HandlerResult(status=HandlerStatus.PASS)
 
         if tag == GossipMessage.BATCH:
